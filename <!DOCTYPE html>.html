@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Blackjack Tracker</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #111;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #f5c542;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+    }
+
+    .card {
+      background: #1d1d1d;
+      padding: 20px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    }
+
+    label {
+      display: block;
+      margin-top: 12px;
+      font-weight: bold;
+    }
+
+    input, textarea {
+      width: 100%;
+      padding: 10px;
+      margin-top: 5px;
+      border-radius: 8px;
+      border: none;
+      font-size: 16px;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      background: #f5c542;
+      color: #111;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 16px;
+    }
+
+    button:hover {
+      background: #ffd95c;
+    }
+
+    .danger {
+      background: #ff4d4d;
+      color: white;
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 15px;
+    }
+
+    .stat-box {
+      background: #292929;
+      padding: 15px;
+      border-radius: 10px;
+      text-align: center;
+    }
+
+    .stat-box h2 {
+      margin: 0;
+      color: #f5c542;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th, td {
+      padding: 10px;
+      border-bottom: 1px solid #333;
+      text-align: left;
+    }
+
+    .win {
+      color: #4dff88;
+      font-weight: bold;
+    }
+
+    .loss {
+      color: #ff4d4d;
+      font-weight: bold;
+    }
+
+    .neutral {
+      color: #ccc;
+      font-weight: bold;
+    }
+
+    @media (max-width: 600px) {
+      table {
+        font-size: 13px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Blackjack Session Tracker</h1>
+
+    <div class="card">
+      <h2>Ajouter une session</h2>
+
+      <label>Date</label>
+      <input type="date" id="date">
+
+      <label>Durée de la session</label>
+      <input type="number" id="hours" placeholder="Heures jouées ex: 2">
+
+      <label>Buy-in / argent de départ</label>
+      <input type="number" id="buyIn" placeholder="Ex: 200">
+
+      <label>Cash out / argent à la fin</label>
+      <input type="number" id="cashOut" placeholder="Ex: 350">
+
+      <label>Notes</label>
+      <textarea id="notes" placeholder="Ex: bonnes décisions, tilt, table difficile..."></textarea>
+
+      <button onclick="addSession()">Ajouter la session</button>
+    </div>
+
+    <div class="card">
+      <h2>Résumé global</h2>
+
+      <div class="stats">
+        <div class="stat-box">
+          <p>Profit total</p>
+          <h2 id="totalProfit">$0</h2>
+        </div>
+
+        <div class="stat-box">
+          <p>Sessions jouées</p>
+          <h2 id="totalSessions">0</h2>
+        </div>
+
+        <div class="stat-box">
+          <p>Temps total</p>
+          <h2 id="totalHours">0h</h2>
+        </div>
+
+        <div class="stat-box">
+          <p>Profit / heure</p>
+          <h2 id="hourlyRate">$0/h</h2>
+        </div>
+
+        <div class="stat-box">
+          <p>Sessions gagnantes</p>
+          <h2 id="winningSessions">0</h2>
+        </div>
+
+        <div class="stat-box">
+          <p>Win rate</p>
+          <h2 id="winRate">0%</h2>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Historique des sessions</h2>
+
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Durée</th>
+            <th>Buy-in</th>
+            <th>Cash out</th>
+            <th>Profit</th>
+            <th>Notes</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="sessionsTable"></tbody>
+      </table>
+
+      <button class="danger" onclick="clearAll()">Tout supprimer</button>
+    </div>
+  </div>
+
+  <script>
+    let sessions = JSON.parse(localStorage.getItem("blackjackSessions")) || [];
+
+    document.getElementById("date").valueAsDate = new Date();
+
+    function saveSessions() {
+      localStorage.setItem("blackjackSessions", JSON.stringify(sessions));
+    }
+
+    function addSession() {
+      const date = document.getElementById("date").value;
+      const hours = parseFloat(document.getElementById("hours").value);
+      const buyIn = parseFloat(document.getElementById("buyIn").value);
+      const cashOut = parseFloat(document.getElementById("cashOut").value);
+      const notes = document.getElementById("notes").value;
+
+      if (!date || isNaN(hours) || isNaN(buyIn) || isNaN(cashOut)) {
+        alert("Remplis au moins la date, les heures, le buy-in et le cash out.");
+        return;
+      }
+
+      const profit = cashOut - buyIn;
+
+      const session = {
+        id: Date.now(),
+        date,
+        hours,
+        buyIn,
+        cashOut,
+        profit,
+        notes
+      };
+
+      sessions.push(session);
+      saveSessions();
+      renderSessions();
+
+      document.getElementById("hours").value = "";
+      document.getElementById("buyIn").value = "";
+      document.getElementById("cashOut").value = "";
+      document.getElementById("notes").value = "";
+      document.getElementById("date").valueAsDate = new Date();
+    }
+
+    function deleteSession(id) {
+      sessions = sessions.filter(session => session.id !== id);
+      saveSessions();
+      renderSessions();
+    }
+
+    function clearAll() {
+      if (confirm("Es-tu sûr de vouloir supprimer toutes les sessions?")) {
+        sessions = [];
+        saveSessions();
+        renderSessions();
+      }
+    }
+
+    function renderSessions() {
+      const table = document.getElementById("sessionsTable");
+      table.innerHTML = "";
+
+      let totalProfit = 0;
+      let totalHours = 0;
+      let winningSessions = 0;
+
+      sessions.forEach(session => {
+        totalProfit += session.profit;
+        totalHours += session.hours;
+
+        if (session.profit > 0) {
+          winningSessions++;
+        }
+
+        const profitClass =
+          session.profit > 0 ? "win" :
+          session.profit < 0 ? "loss" :
+          "neutral";
+
+        const row = `
+          <tr>
+            <td>${session.date}</td>
+            <td>${session.hours}h</td>
+            <td>$${session.buyIn.toFixed(2)}</td>
+            <td>$${session.cashOut.toFixed(2)}</td>
+            <td class="${profitClass}">
+              ${session.profit >= 0 ? "+" : ""}$${session.profit.toFixed(2)}
+            </td>
+            <td>${session.notes || "-"}</td>
+            <td>
+              <button class="danger" onclick="deleteSession(${session.id})">X</button>
+            </td>
+          </tr>
+        `;
+
+        table.innerHTML += row;
+      });
+
+      const totalSessions = sessions.length;
+      const hourlyRate = totalHours > 0 ? totalProfit / totalHours : 0;
+      const winRate = totalSessions > 0 ? (winningSessions / totalSessions) * 100 : 0;
+
+      document.getElementById("totalProfit").textContent =
+        `${totalProfit >= 0 ? "+" : ""}$${totalProfit.toFixed(2)}`;
+
+      document.getElementById("totalProfit").className =
+        totalProfit > 0 ? "win" : totalProfit < 0 ? "loss" : "neutral";
+
+      document.getElementById("totalSessions").textContent = totalSessions;
+      document.getElementById("totalHours").textContent = `${totalHours.toFixed(1)}h`;
+      document.getElementById("hourlyRate").textContent =
+        `$${hourlyRate.toFixed(2)}/h`;
+      document.getElementById("winningSessions").textContent = winningSessions;
+      document.getElementById("winRate").textContent = `${winRate.toFixed(1)}%`;
+    }
+
+    renderSessions();
+  </script>
+
+</body>
+</html>
